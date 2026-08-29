@@ -1,0 +1,22 @@
+{
+  "name": "vna-ptfs-bot",
+  "version": "1.0.0",
+  "description": "Vietnam Airlines PTFS Discord bot — flight booking, Lotusmiles loyalty, and exit surveys",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "deploy-commands": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
