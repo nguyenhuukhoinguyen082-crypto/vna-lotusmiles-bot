@@ -1,34 +1,19 @@
 const { db, admin } = require('../../config/firebase');
 
 const COLLECTION = 'flights';
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000; // placeholder flight duration for the Scheduled Event end time
 
 /**
- * Creates a flight doc and — best-effort — a matching Discord Scheduled Event.
- * If the Scheduled Event creation fails (e.g. bot missing "Manage Events"),
- * the flight is still saved; the event ID is just left null.
+ * Creates a flight doc. Event creation is manual — staff paste in whatever
+ * event link they've already set up (a Discord Scheduled Event they made
+ * themselves, an external link, etc.) plus any freeform details, and both
+ * get stored on the flight for reference/display. Nothing here touches the
+ * Discord API.
  */
-async function createFlight(guild, {
+async function createFlight({
   flightNumber, origin, destination, aircraft, departureTime, distanceNm,
-  capacityEconomy, capacityBusiness, createdBy,
+  capacityEconomy, capacityBusiness, eventLink, details, createdBy,
 }) {
   const ref = db.collection(COLLECTION).doc();
-
-  let scheduledEventId = null;
-  try {
-    const event = await guild.scheduledEvents.create({
-      name: `${flightNumber} — ${origin} → ${destination}`,
-      scheduledStartTime: departureTime,
-      scheduledEndTime: new Date(departureTime.getTime() + TWO_HOURS_MS),
-      privacyLevel: 2, // GuildOnly
-      entityType: 3,   // External
-      entityMetadata: { location: `${origin} → ${destination}` },
-      description: `${aircraft} · ${distanceNm} nm — book with /book flight:${flightNumber}`,
-    });
-    scheduledEventId = event.id;
-  } catch (error) {
-    console.warn(`[flights] Couldn't create a Scheduled Event for ${flightNumber}:`, error.message);
-  }
 
   const flight = {
     flightNumber,
@@ -40,7 +25,8 @@ async function createFlight(guild, {
     capacity: { economy: capacityEconomy, business: capacityBusiness },
     booked: { economy: 0, business: 0 },
     status: 'scheduled',
-    scheduledEventId,
+    eventLink: eventLink || null,
+    details: details || null,
     createdBy,
     createdAt: admin.firestore.Timestamp.now(),
   };
@@ -77,24 +63,14 @@ async function getFlightById(flightId) {
   return doc.exists ? { id: doc.id, ...doc.data() } : null;
 }
 
-/** Cancels the flight doc and its Discord Scheduled Event (best-effort). Does NOT touch bookings — see cancelBooking/bulk cancel in the staff command. */
-async function cancelFlight(guild, flightId) {
+/** Cancels the flight doc. Does NOT touch bookings — see cancelBooking/bulk cancel in the staff command. If staff created their own Discord Scheduled Event for this flight, they'll need to cancel/delete it themselves — this bot no longer manages Scheduled Events. */
+async function cancelFlight(flightId) {
   const ref = db.collection(COLLECTION).doc(flightId);
   const snap = await ref.get();
   if (!snap.exists) return null;
 
-  const flight = snap.data();
-  if (flight.scheduledEventId) {
-    try {
-      const event = await guild.scheduledEvents.fetch(flight.scheduledEventId);
-      await event.delete();
-    } catch (error) {
-      console.warn(`[flights] Couldn't delete Scheduled Event ${flight.scheduledEventId}:`, error.message);
-    }
-  }
-
   await ref.update({ status: 'cancelled' });
-  return { id: flightId, ...flight, status: 'cancelled' };
+  return { id: flightId, ...snap.data(), status: 'cancelled' };
 }
 
 module.exports = {
