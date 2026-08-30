@@ -36,10 +36,13 @@ module.exports = {
     }
 
     const refunded = await bulkCancelBookingsForFlight(flight.id);
-    await cancelFlight(interaction.guild, flight.id);
+    await cancelFlight(flight.id);
 
-    await interaction.editReply({
-      embeds: [successEmbed(`${flightNumber} cancelled. ${refunded.length} booking(s) refunded and their Lotusmiles miles clawed back.`)],
-    });
+    let message = `${flightNumber} cancelled. ${refunded.length} booking(s) refunded and their Lotusmiles miles clawed back.`;
+    if (flight.eventLink) {
+      message += ` Don't forget to cancel/delete the event yourself: ${flight.eventLink}`;
+    }
+
+    await interaction.editReply({ embeds: [successEmbed(message)] });
   },
 };
