@@ -67,6 +67,12 @@ module.exports = {
         )
         .setFooter({ text: 'Keep your PNR handy — you\'ll need it to cancel with /cancelbooking' });
 
+      if (flight.eventLink) {
+        embed.addFields({ name: 'Event', value: flight.eventLink, inline: false });
+      }
+      if (flight.details) {
+        embed.addFields({ name: 'Details', value: flight.details, inline: false });
+      }
       if (tierChanged) {
         embed.addFields({ name: '🎉 Tier Upgrade', value: `You've reached **${getTier(newTier).name}** status!`, inline: false });
       }
