@@ -2,13 +2,14 @@ const { db, admin } = require('../../config/firebase');
 const { generatePnr } = require('./pnr');
 const { BookingError } = require('./errors');
 const { calculateEarnedMiles } = require('../lotusmiles/calculateEarnedMiles');
-const { getTier, tierForLifetimeMiles } = require('../lotusmiles/tiers');
+const { getTier, tierForLifetimeMiles } = require('../lotusmiles/tierConfig');
 
 /**
  * Books a seat on a flight for a user. Runs as a single Firestore transaction
  * so a capacity check-then-increment can't race with a simultaneous booking,
  * and so the flight update, booking record, and Lotusmiles credit either all
- * happen together or not at all.
+ * happen together or not at all. Tier config is read outside the transaction
+ * (cached, rarely-changing) — see tierConfig.js.
  */
 async function createBooking({ userId, userTag, flightId, fareClass }) {
   const flightRef = db.collection('flights').doc(flightId);
@@ -47,10 +48,10 @@ async function createBooking({ userId, userTag, flightId, fareClass }) {
       ? accountSnap.data()
       : { userId, userTag, balance: 0, lifetimeMiles: 0, tier: 'classic', memberSince: admin.firestore.Timestamp.now() };
 
-    const tierBonus = getTier(account.tier).earnBonus;
-    const milesEarned = calculateEarnedMiles(flight.distanceNm, fareClass, tierBonus);
+    const currentTier = await getTier(account.tier);
+    const milesEarned = calculateEarnedMiles(flight.distanceNm, fareClass, currentTier.earnBonus);
     const newLifetime = account.lifetimeMiles + milesEarned;
-    const newTier = tierForLifetimeMiles(newLifetime).key;
+    const newTier = (await tierForLifetimeMiles(newLifetime)).key;
 
     const pnr = generatePnr();
     const bookedAt = admin.firestore.Timestamp.now();
@@ -83,6 +84,7 @@ async function createBooking({ userId, userTag, flightId, fareClass }) {
 
     return {
       booking,
+      flight,
       milesEarned,
       tierChanged: newTier !== account.tier,
       previousTier: account.tier,

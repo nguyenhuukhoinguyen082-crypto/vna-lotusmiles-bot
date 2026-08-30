@@ -1,9 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { listUpcomingFlights, getScheduledFlightByNumber } = require('../../modules/booking/flights');
 const { createBooking } = require('../../modules/booking/createBooking');
 const { BookingError } = require('../../modules/booking/errors');
-const { getTier } = require('../../modules/lotusmiles/tiers');
-const { COLORS, errorEmbed } = require('../../utils/embeds');
+const { buildBookingConfirmationEmbed } = require('../../modules/booking/bookingConfirmationEmbed');
+const { syncTierRole } = require('../../modules/lotusmiles/syncTierRole');
+const { errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -48,36 +49,19 @@ module.exports = {
     }
 
     try {
-      const { booking, milesEarned, tierChanged, newTier } = await createBooking({
+      const result = await createBooking({
         userId: interaction.user.id,
         userTag: interaction.user.tag,
         flightId: flight.id,
         fareClass,
       });
 
-      const embed = new EmbedBuilder()
-        .setColor(COLORS.brand)
-        .setTitle(`✈️ Booking Confirmed — ${booking.flightNumber}`)
-        .addFields(
-          { name: 'Route', value: `${booking.origin} → ${booking.destination}`, inline: true },
-          { name: 'Fare Class', value: fareClass === 'business' ? 'Business' : 'Economy', inline: true },
-          { name: 'PNR', value: `\`${booking.pnr}\``, inline: true },
-          { name: 'Departure', value: `<t:${flight.departureTime.seconds}:F>`, inline: false },
-          { name: 'Lotusmiles Earned', value: `+${milesEarned} miles`, inline: true },
-        )
-        .setFooter({ text: 'Keep your PNR handy — you\'ll need it to cancel with /cancelbooking' });
-
-      if (flight.eventLink) {
-        embed.addFields({ name: 'Event', value: flight.eventLink, inline: false });
-      }
-      if (flight.details) {
-        embed.addFields({ name: 'Details', value: flight.details, inline: false });
-      }
-      if (tierChanged) {
-        embed.addFields({ name: '🎉 Tier Upgrade', value: `You've reached **${getTier(newTier).name}** status!`, inline: false });
-      }
-
+      const embed = await buildBookingConfirmationEmbed(result);
       await interaction.editReply({ embeds: [embed] });
+
+      if (result.tierChanged) {
+        await syncTierRole(interaction.guild, interaction.user.id, result.previousTier, result.newTier);
+      }
     } catch (error) {
       if (error instanceof BookingError) {
         return interaction.editReply({ embeds: [errorEmbed(error.message)] });

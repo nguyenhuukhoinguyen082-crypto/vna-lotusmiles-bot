@@ -1,5 +1,5 @@
 const { db, admin } = require('../../config/firebase');
-const { tierForLifetimeMiles } = require('./tiers');
+const { tierForLifetimeMiles } = require('./tierConfig');
 
 const COLLECTION = 'lotusmilesAccounts';
 
@@ -31,7 +31,12 @@ async function getOrCreateAccount(userId, userTag) {
  * a Firestore transaction so two near-simultaneous changes (e.g. a booking and
  * a staff adjustment landing at the same moment) can't clobber each other.
  * Balance and lifetime miles are both clamped at 0 and never go negative.
- * Returns the account state after the change, plus whether the tier changed.
+ * Returns the account state after the change, plus tier-change info the
+ * caller can pass to syncTierRole().
+ *
+ * Note: the tier-config lookup below reads outside the transaction (it's a
+ * cached, rarely-changing config doc, not part of the balance invariant this
+ * transaction protects) — see tierConfig.js for why.
  */
 async function adjustMiles(userId, userTag, delta) {
   const ref = db.collection(COLLECTION).doc(userId);
@@ -43,7 +48,7 @@ async function adjustMiles(userId, userTag, delta) {
     const newBalance = Math.max(0, current.balance + delta);
     const newLifetime = Math.max(0, current.lifetimeMiles + delta);
     const previousTier = current.tier;
-    const newTier = tierForLifetimeMiles(newLifetime).key;
+    const newTier = (await tierForLifetimeMiles(newLifetime)).key;
 
     const updated = {
       ...current,
@@ -56,7 +61,7 @@ async function adjustMiles(userId, userTag, delta) {
 
     tx.set(ref, updated);
 
-    return { account: updated, tierChanged: newTier !== previousTier, previousTier };
+    return { account: updated, tierChanged: newTier !== previousTier, previousTier, newTier };
   });
 }
 

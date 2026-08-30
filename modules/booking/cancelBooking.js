@@ -1,12 +1,12 @@
 const { db, admin } = require('../../config/firebase');
 const { BookingError } = require('./errors');
-const { tierForLifetimeMiles } = require('../lotusmiles/tiers');
+const { tierForLifetimeMiles } = require('../lotusmiles/tierConfig');
 
 /**
  * Cancels a confirmed booking by PNR (scoped to the requesting user — you
  * can't cancel someone else's booking by guessing their PNR). Frees the seat
  * on the flight and claws back the miles that booking earned, all in one
- * transaction.
+ * transaction. Returns tier-change info the caller can pass to syncTierRole().
  */
 async function cancelBooking({ userId, pnr }) {
   const lookup = await db.collection('bookings')
@@ -38,22 +38,30 @@ async function cancelBooking({ userId, pnr }) {
       });
     }
 
+    let tierChanged = false;
+    let previousTier = null;
+    let newTier = null;
+
     if (accountSnap.exists) {
       const account = accountSnap.data();
       const newBalance = Math.max(0, account.balance - bookingData.milesEarned);
       const newLifetime = Math.max(0, account.lifetimeMiles - bookingData.milesEarned);
+      previousTier = account.tier;
+      newTier = (await tierForLifetimeMiles(newLifetime)).key;
+      tierChanged = newTier !== previousTier;
+
       tx.set(accountRef, {
         ...account,
         balance: newBalance,
         lifetimeMiles: newLifetime,
-        tier: tierForLifetimeMiles(newLifetime).key,
+        tier: newTier,
         lastActivityAt: admin.firestore.Timestamp.now(),
       });
     }
 
     tx.update(bookingRef, { status: 'cancelled', cancelledAt: admin.firestore.Timestamp.now() });
 
-    return { ...bookingData, status: 'cancelled' };
+    return { ...bookingData, status: 'cancelled', tierChanged, previousTier, newTier };
   });
 }
 

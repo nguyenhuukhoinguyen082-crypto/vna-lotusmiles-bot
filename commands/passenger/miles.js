@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getOrCreateAccount } = require('../../modules/lotusmiles/account');
-const { getTier, milesToNextTier } = require('../../modules/lotusmiles/tiers');
+const { getTier, milesToNextTier } = require('../../modules/lotusmiles/tierConfig');
 const { COLORS } = require('../../utils/embeds');
 
 module.exports = {
@@ -12,8 +12,8 @@ module.exports = {
     await interaction.deferReply({ ephemeral: true });
 
     const account = await getOrCreateAccount(interaction.user.id, interaction.user.tag);
-    const tier = getTier(account.tier);
-    const progress = milesToNextTier(account.lifetimeMiles);
+    const tier = await getTier(account.tier);
+    const progress = await milesToNextTier(account.lifetimeMiles);
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.gold)
@@ -28,7 +28,7 @@ module.exports = {
       name: 'Next Tier',
       value: progress
         ? `${progress.remaining.toLocaleString()} miles to **${progress.next.name}**`
-        : "You're at the top tier — Titanium! 🎉",
+        : "You're at the top tier! 🎉",
       inline: false,
     });
 

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { cancelBooking } = require('../../modules/booking/cancelBooking');
 const { BookingError } = require('../../modules/booking/errors');
+const { syncTierRole } = require('../../modules/lotusmiles/syncTierRole');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
@@ -21,6 +22,10 @@ module.exports = {
       await interaction.editReply({
         embeds: [successEmbed(`Booking \`${cancelled.pnr}\` on ${cancelled.flightNumber} cancelled. The miles it earned have been removed from your Lotusmiles balance.`)],
       });
+
+      if (cancelled.tierChanged) {
+        await syncTierRole(interaction.guild, interaction.user.id, cancelled.previousTier, cancelled.newTier);
+      }
     } catch (error) {
       if (error instanceof BookingError) {
         return interaction.editReply({ embeds: [errorEmbed(error.message)] });

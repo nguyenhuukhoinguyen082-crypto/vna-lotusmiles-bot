@@ -1,3 +1,5 @@
+const { handleBookingButton, handleBookingSelect } = require('../modules/booking/bookingPanel');
+
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
@@ -19,7 +21,7 @@ module.exports = {
       return;
     }
 
-    // Autocomplete (flight number lookups on /book, /cancelbooking, /flight-cancel)
+    // Autocomplete (flight number lookups on /book, /flight-cancel)
     if (interaction.isAutocomplete()) {
       const command = client.commands.get(interaction.commandName);
       if (!command?.autocomplete) return;
@@ -31,21 +33,40 @@ module.exports = {
       return;
     }
 
-    // Buttons — route by customId prefix (e.g. "ticket_claim" -> "ticket")
+    // Buttons — route by customId prefix (e.g. "book_start" -> "book")
     if (interaction.isButton()) {
       const [prefix] = interaction.customId.split('_');
-      // No button-driven flows yet — booking/Lotusmiles/exit-survey are all
-      // slash-command or DM driven. Add routing here as button flows are added.
+      if (prefix === 'book') {
+        try {
+          await handleBookingButton(interaction);
+        } catch (error) {
+          console.error('Error in booking button flow:', error);
+          const payload = { content: 'Something went wrong with that booking step.', embeds: [], components: [] };
+          if (interaction.replied || interaction.deferred) await interaction.editReply(payload).catch(() => {});
+          else await interaction.reply({ ...payload, ephemeral: true }).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    // Select menus — same "book" prefix convention
+    if (interaction.isStringSelectMenu()) {
+      const [prefix] = interaction.customId.split('_');
+      if (prefix === 'book') {
+        try {
+          await handleBookingSelect(interaction);
+        } catch (error) {
+          console.error('Error in booking select flow:', error);
+          const payload = { content: 'Something went wrong with that booking step.', embeds: [], components: [] };
+          if (interaction.replied || interaction.deferred) await interaction.editReply(payload).catch(() => {});
+          else await interaction.reply({ ...payload, ephemeral: true }).catch(() => {});
+        }
+      }
       return;
     }
 
     // Modals
     if (interaction.isModalSubmit()) {
-      return;
-    }
-
-    // Select menus
-    if (interaction.isStringSelectMenu()) {
       return;
     }
   },

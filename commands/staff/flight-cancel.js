@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { listUpcomingFlights, getScheduledFlightByNumber, cancelFlight } = require('../../modules/booking/flights');
 const { bulkCancelBookingsForFlight } = require('../../modules/booking/bulkCancelBookingsForFlight');
+const { syncTierRole } = require('../../modules/lotusmiles/syncTierRole');
 const { requireRole } = require('../../utils/permissions');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 
@@ -37,6 +38,12 @@ module.exports = {
 
     const refunded = await bulkCancelBookingsForFlight(flight.id);
     await cancelFlight(flight.id);
+
+    for (const booking of refunded) {
+      if (booking.tierChanged) {
+        await syncTierRole(interaction.guild, booking.userId, booking.previousTier, booking.newTier);
+      }
+    }
 
     let message = `${flightNumber} cancelled. ${refunded.length} booking(s) refunded and their Lotusmiles miles clawed back.`;
     if (flight.eventLink) {

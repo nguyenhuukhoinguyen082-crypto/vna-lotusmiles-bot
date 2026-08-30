@@ -23,7 +23,8 @@ module.exports = {
       .setDescription(
         flights.map(f =>
           `**${f.flightNumber}** ${f.origin} → ${f.destination} — <t:${f.departureTime.seconds}:f>\n` +
-          `　Economy ${f.booked.economy}/${f.capacity.economy} · Business ${f.booked.business}/${f.capacity.business}`,
+          `　Economy ${f.booked.economy}/${f.capacity.economy} · Business ${f.booked.business}/${f.capacity.business}` +
+          (f.eventLink ? `\n　[Event Link](${f.eventLink})` : ''),
         ).join('\n\n'),
       );
 
