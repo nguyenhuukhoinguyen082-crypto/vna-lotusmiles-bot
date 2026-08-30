@@ -35,7 +35,7 @@ async function handleDmResponse(message, client) {
   });
 
   await message.reply(
-    "Thank you for taking the time to share that — we really appreciate it, and we wish you all the best! ✈️",
+    'Thank you for these amazing feedback. We will work on based on your suggestions. Thanks!',
   );
 
   const feedbackChannelId = process.env.EXIT_FEEDBACK_CHANNEL_ID;
