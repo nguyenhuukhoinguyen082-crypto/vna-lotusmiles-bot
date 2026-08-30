@@ -15,7 +15,9 @@ module.exports = {
     .addStringOption(opt => opt.setName('departure').setDescription('Departure, UTC — format YYYY-MM-DD HH:MM').setRequired(true))
     .addIntegerOption(opt => opt.setName('distance').setDescription('Distance in nautical miles').setRequired(true).setMinValue(1))
     .addIntegerOption(opt => opt.setName('capacity-economy').setDescription('Economy seats').setRequired(true).setMinValue(0))
-    .addIntegerOption(opt => opt.setName('capacity-business').setDescription('Business seats').setRequired(true).setMinValue(0)),
+    .addIntegerOption(opt => opt.setName('capacity-business').setDescription('Business seats').setRequired(true).setMinValue(0))
+    .addStringOption(opt => opt.setName('eventlink').setDescription('Link to the event (Discord Scheduled Event, etc.) — optional').setRequired(false))
+    .addStringOption(opt => opt.setName('details').setDescription('Any other details to show passengers — optional').setRequired(false)),
 
   async execute(interaction) {
     if (!(await requireRole(interaction, process.env.STAFF_ROLE_ID))) return;
@@ -29,6 +31,8 @@ module.exports = {
     const distanceNm = interaction.options.getInteger('distance');
     const capacityEconomy = interaction.options.getInteger('capacity-economy');
     const capacityBusiness = interaction.options.getInteger('capacity-business');
+    const eventLink = interaction.options.getString('eventlink');
+    const details = interaction.options.getString('details');
 
     const departureTime = new Date(`${departureRaw.replace(' ', 'T')}:00Z`);
     if (isNaN(departureTime.getTime())) {
@@ -37,10 +41,13 @@ module.exports = {
     if (departureTime.getTime() <= Date.now()) {
       return interaction.editReply({ embeds: [errorEmbed('Departure time has to be in the future.')] });
     }
+    if (eventLink && !/^https?:\/\//i.test(eventLink)) {
+      return interaction.editReply({ embeds: [errorEmbed('That doesn\'t look like a link — event links should start with `http://` or `https://`.')] });
+    }
 
-    const flight = await createFlight(interaction.guild, {
+    const flight = await createFlight({
       flightNumber, origin, destination, aircraft, departureTime, distanceNm,
-      capacityEconomy, capacityBusiness, createdBy: interaction.user.id,
+      capacityEconomy, capacityBusiness, eventLink, details, createdBy: interaction.user.id,
     });
 
     const embed = new EmbedBuilder()
@@ -54,9 +61,8 @@ module.exports = {
         { name: 'Capacity', value: `Economy: ${capacityEconomy} · Business: ${capacityBusiness}`, inline: false },
       );
 
-    if (!flight.scheduledEventId) {
-      embed.addFields({ name: '⚠️ Note', value: 'Flight saved, but the Discord Scheduled Event couldn\'t be created (check the bot has Manage Events).', inline: false });
-    }
+    if (eventLink) embed.addFields({ name: 'Event Link', value: eventLink, inline: false });
+    if (details) embed.addFields({ name: 'Details', value: details, inline: false });
 
     await interaction.editReply({ embeds: [embed] });
   },
