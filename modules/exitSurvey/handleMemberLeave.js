@@ -5,15 +5,15 @@ const { logToChannel } = require('../../utils/logger');
 
 const COLLECTION = 'exitSurveys';
 
-function buildOutreachEmbed(guildName) {
+function buildOutreachEmbed() {
   return new EmbedBuilder()
     .setColor(COLORS.brand)
-    .setTitle(`Sorry to see you go, ${guildName} 👋`)
     .setDescription(
-      "You've left the server — before you go, we'd really appreciate knowing why, and how your overall " +
-      "experience was with us. Just reply to this message with your thoughts (as much or as little as you'd like).",
-    )
-    .setFooter({ text: 'Your feedback goes straight to our team and helps us improve.' });
+      'Greetings! Sorry to see you leave Vietnam Airlines PTFS. If possible, can you provide us the reason ' +
+      'why you left the server and also, what should we improve on our server to make it better?\n\n' +
+      'Thank you for your time!\n' +
+      '*Vietnam Airlines Support Team*',
+    );
 }
 
 /**
@@ -43,7 +43,7 @@ async function handleMemberLeave(member, client) {
   await ref.set(record);
 
   try {
-    await member.send({ embeds: [buildOutreachEmbed(member.guild.name)] });
+    await member.send({ embeds: [buildOutreachEmbed()] });
     await ref.update({ dmSent: true });
   } catch (error) {
     await ref.update({ dmSent: false, dmFailed: true, status: 'dm_failed' });
