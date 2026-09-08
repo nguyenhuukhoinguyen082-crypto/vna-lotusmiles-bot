@@ -3,9 +3,6 @@ const {
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
 } = require('discord.js');
 const config = require('../config');
 const fb = require('../firebase');
@@ -14,16 +11,6 @@ const { generateId, shuffle } = require('../utils/helpers');
 
 // Active exam sessions keyed by userId
 const activeSessions = new Map();
-
-// Build a modal text-input label, kept safely under Discord's 45-char limit.
-function writtenLabel(questionId, question) {
-  const prefix = `Q${questionId}: `;
-  if (prefix.length + question.length <= 45) {
-    return prefix + question;
-  }
-  const room = 45 - prefix.length - 1; // reserve 1 char for the ellipsis
-  return prefix + question.slice(0, room) + '…';
-}
 
 // Entry point when user clicks the spawned "Start Phase 1 Exam" button
 async function beginExamFromButton(interaction) {
@@ -142,7 +129,7 @@ async function sendMCQuestion(channel, session, exam) {
     session.phase = 'written';
     session.currentQuestion = 0;
     await fb.updateExamProgress(session.userId, { phase: 'written' });
-    await channel.send('**Section 1 Complete!** Now moving to Section 2: Written Questions.\nYou will receive a modal for each written question.');
+    await channel.send('**Section 1 Complete!** Now moving to Section 2: Written Questions.\nYou will answer each written question by replying directly in this chat.');
     await sendWrittenQuestion(channel, session, exam);
     return;
   }
@@ -231,108 +218,66 @@ async function sendWrittenQuestion(channel, session, exam) {
   }
 
   const q = exam.writtenQuestions[qIndex];
-
-  const modal = new ModalBuilder()
-    .setCustomId('exam_written_modal')
-    .setTitle(`Written Question ${q.id}`);
-
-  const answerInput = new TextInputBuilder()
-    .setCustomId('written_answer')
-    .setLabel(writtenLabel(q.id, q.question))
-    .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder('Type your detailed answer here...')
-    .setRequired(true)
-    .setMinLength(10)
-    .setMaxLength(2000);
-
-  const actionRow = new ActionRowBuilder().addComponents(answerInput);
-  modal.addComponents(actionRow);
+  session.awaitingAnswer = true;
 
   await channel.send({
-    content: `### Written Question ${q.id} of 10 (${q.points} points)\n\n${q.question}\n\n*A modal will appear for you to type your answer.*`,
+    content: `### Written Question ${q.id} of 10 (${q.points} points)\n\n${q.question}\n\n**Reply to this chat with your answer.** Your next message in this DM will be recorded as your answer.`,
   });
+}
 
-  // Show the modal
-  try {
-    // We need to use a button to trigger the modal since we can't show modals from DM messages directly
-    const triggerRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('exam_trigger_written_modal')
-        .setLabel('Open Answer Form')
-        .setStyle(ButtonStyle.Primary)
-    );
+// Records a trainee's typed DM message as the answer to the current written question.
+// Returns true if the message was consumed as an exam answer, otherwise false.
+async function handleDMMessage(message) {
+  if (message.author.bot) return false;
 
-    const msg = await channel.send({
-      content: 'Click the button below to open the answer form:',
-      components: [triggerRow],
+  // Only process direct messages
+  if (!message.guildId) {
+    const userId = message.author.id;
+    const session = activeSessions.get(userId);
+    if (!session || session.phase !== 'written') return false;
+    if (!session.awaitingAnswer) return false;
+
+    const exam = getExam(session.department);
+    const q = exam.writtenQuestions[session.currentQuestion];
+    if (!q) return false;
+
+    const answer = message.content.trim();
+
+    // Enforce minimum answer length
+    if (answer.length < 10) {
+      await message.channel.send({
+        content: `⚠️ Your answer is too short (${answer.length} characters). Please type at least **10 characters** for your answer to **Written Question ${q.id}**.`,
+      });
+      return true;
+    }
+
+    session.writtenAnswers.push({
+      questionId: q.id,
+      question: q.question,
+      answer,
+      points: q.points,
+    });
+    session.awaitingAnswer = false;
+
+    await message.channel.send({
+      content: `✅ **Written Question ${q.id}** — answer recorded!\n\n> ${answer.length > 200 ? answer.slice(0, 200) + '...' : answer}`,
     });
 
-    session.pendingWrittenMsgId = msg.id;
-  } catch (e) {
-    console.error('Failed to send written trigger:', e);
-  }
-}
+    session.currentQuestion++;
+    await fb.updateExamProgress(session.userId, {
+      writtenAnswers: session.writtenAnswers,
+      currentQuestion: session.currentQuestion,
+    });
 
-async function handleWrittenTrigger(interaction) {
-  const userId = interaction.user.id;
-  const session = activeSessions.get(userId);
-  if (!session || session.phase !== 'written') {
-    return interaction.reply({ content: 'No active written question.', ephemeral: true });
-  }
+    // Next written question or finish
+    setTimeout(async () => {
+      await sendWrittenQuestion(message.channel, session, exam);
+    }, 1000);
 
-  const exam = getExam(session.department);
-  const q = exam.writtenQuestions[session.currentQuestion];
-
-  const modal = new ModalBuilder()
-    .setCustomId(`exam_written_${session.currentQuestion}`)
-    .setTitle(`Written Question ${q.id}`);
-
-  const answerInput = new TextInputBuilder()
-    .setCustomId('written_answer')
-    .setLabel(writtenLabel(q.id, q.question))
-    .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder('Type your detailed answer here...')
-    .setRequired(true)
-    .setMinLength(10)
-    .setMaxLength(2000);
-
-  modal.addComponents(new ActionRowBuilder().addComponents(answerInput));
-  await interaction.showModal(modal);
-}
-
-async function handleWrittenModal(interaction) {
-  const userId = interaction.user.id;
-  const session = activeSessions.get(userId);
-  if (!session || session.phase !== 'written') {
-    return interaction.reply({ content: 'No active exam session.', ephemeral: true });
+    return true;
   }
 
-  const answer = interaction.fields.getTextInputValue('written_answer');
-  const exam = getExam(session.department);
-  const q = exam.writtenQuestions[session.currentQuestion];
-
-  session.writtenAnswers.push({
-    questionId: q.id,
-    question: q.question,
-    answer,
-    points: q.points,
-  });
-
-  await interaction.reply({
-    content: `**Written Question ${q.id}** - Answer submitted ✅\n*${answer.slice(0, 100)}${answer.length > 100 ? '...' : ''}*`,
-    ephemeral: true,
-  });
-
-  session.currentQuestion++;
-  await fb.updateExamProgress(session.userId, {
-    writtenAnswers: session.writtenAnswers,
-    currentQuestion: session.currentQuestion,
-  });
-
-  // Next written question or finish
-  setTimeout(async () => {
-    await sendWrittenQuestion(interaction.channel, session, exam);
-  }, 1000);
+  return false;
 }
 
 async function finishExam(channel, session, exam) {
@@ -404,8 +349,7 @@ module.exports = {
   beginExamFromButton,
   handleDepartmentSelect,
   handleMCAnswer,
-  handleWrittenTrigger,
-  handleWrittenModal,
+  handleDMMessage,
   cancelExam,
   activeSessions,
 };
