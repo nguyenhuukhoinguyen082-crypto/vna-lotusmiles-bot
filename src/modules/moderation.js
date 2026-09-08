@@ -19,14 +19,13 @@ async function enforcePhase2RequestChannel(message) {
   if (!isPhase2RequestValid(message)) {
     try {
       await message.delete();
-      const warning = await message.channel.send({
-        content: `${message.author} Your message was deleted because it does not follow the required format:\n\n\`\`\`\nUsername: (Ping/Text)\nTraining For: (Department)\nPhase Number: Phase 2\n\`\`\`\nPlease post again using this exact format.`,
-      });
 
-      // Auto-delete warning after 5 seconds
-      setTimeout(async () => {
-        try { await warning.delete(); } catch (e) {}
-      }, 5000);
+      // Send the warning only to the offender via DM so it's not visible in the channel.
+      await message.author.send({
+        content: `Your message in <#${message.channel.id}> was deleted because it does not follow the required format:\n\n\`\`\`\nUsername: (Ping/Text)\nTraining For: (Department)\nPhase Number: Phase 2\n\`\`\`\nPlease post again using this exact format.`,
+      }).catch(() => {
+        // If DMs are closed, no other action needed — the message is still deleted.
+      });
     } catch (e) {
       console.error('Failed to enforce phase-2-request format:', e.message);
     }
