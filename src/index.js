@@ -48,8 +48,18 @@ client.once(Events.ClientReady, async (c) => {
     // Determine the app ID from the logged-in client
     const appId = c.user.id;
 
+    // Debug: which guilds is the bot actually in?
+    const botGuilds = [...c.guilds.cache.values()].map(g => `${g.name} (${g.id})`);
+    console.log(`Bot is currently in ${botGuilds.length} guild(s):`);
+    botGuilds.forEach(g => console.log(`  - ${g}`));
+    console.log(`GUILD_ID config value: ${config.guildId || '(not set)'}`);
+
     // Verify the bot is actually in the configured guild before trying guild registration
     const configuredGuild = config.guildId ? c.guilds.cache.get(config.guildId) : null;
+    if (config.guildId && !configuredGuild) {
+      console.warn(`Configured GUILD_ID ${config.guildId} is NOT one of the guilds the bot can see. ` +
+        `Check your .env GUILD_ID (should be the server you want commands in).`);
+    }
 
     let registered = false;
     if (config.guildId && configuredGuild) {
@@ -70,7 +80,8 @@ client.once(Events.ClientReady, async (c) => {
         Routes.applicationCommands(appId),
         { body: commands }
       );
-      console.log(`Registered ${commands.length} commands globally`);
+      console.log(`Registered ${commands.length} commands globally (may take up to 1 hour to appear). ` +
+        `For instant commands, set GUILD_ID in .env to the server's real ID.`);
     }
   } catch (e) {
     console.error('Failed to register commands:', e);
