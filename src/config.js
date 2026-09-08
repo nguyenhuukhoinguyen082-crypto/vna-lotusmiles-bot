@@ -29,7 +29,7 @@ module.exports = {
     mcqPoints: 12,
     writtenPoints: 12,
     totalPoints: 24,
-    passThreshold: 20,
+    passThreshold: 18,
   },
 
   phase2: {
