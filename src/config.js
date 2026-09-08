@@ -4,6 +4,10 @@ module.exports = {
   token: process.env.DISCORD_TOKEN,
   guildId: process.env.GUILD_ID,
 
+  // Only this user ID can use admin-only commands.
+  // Set ADMIN_USER_ID in .env to YOUR Discord user ID.
+  adminUserId: process.env.ADMIN_USER_ID,
+
   roles: {
     stage1: process.env.ROLE_STAGE_1,
     phase2: process.env.ROLE_PHASE_2,
