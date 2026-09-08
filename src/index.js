@@ -149,12 +149,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return await examEngine.beginExamFromButton(interaction);
       }
 
-      // Written exam trigger
-      if (interaction.customId === 'exam_trigger_written_modal') {
-        return await examEngine.handleWrittenTrigger(interaction);
-      }
-
-      // Grade exam button
       if (interaction.customId.startsWith('grade_exam_')) {
         const examId = interaction.customId.replace('grade_exam_', '');
         return await gradingQueue.startGrading(interaction, examId);
@@ -169,11 +163,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // === MODALS ===
     if (interaction.isModalSubmit()) {
-      // Written exam modal
-      if (interaction.customId === 'exam_written_modal' || interaction.customId.startsWith('exam_written_')) {
-        return await examEngine.handleWrittenModal(interaction);
-      }
-
       // Grading modal
       if (interaction.customId.startsWith('grading_modal_')) {
         const examId = interaction.customId.replace('grading_modal_', '');
@@ -221,9 +210,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// Message handler for channel moderation
+// Message handler for DM exam answers + channel moderation
 client.on(Events.MessageCreate, async (message) => {
   try {
+    // Let the exam engine consume DM messages (written exam answers) first
+    const consumed = await examEngine.handleDMMessage(message);
+    if (consumed) return;
+
     await moderation.enforcePhase2RequestChannel(message);
   } catch (e) {
     console.error('Message handler error:', e);
