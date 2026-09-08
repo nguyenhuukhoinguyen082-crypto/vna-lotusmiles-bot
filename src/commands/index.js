@@ -17,8 +17,8 @@ const commands = [
           { name: 'Ground Crew', value: 'Ground Crew' },
         ))
     .addStringOption(opt => opt.setName('airport').setDescription('Route/Airport').setRequired(true))
-    .addStringOption(opt => opt.setName('co-hosts').setDescription('Co-Hosts/Trainers'))
     .addStringOption(opt => opt.setName('time').setDescription('Evaluation time').setRequired(true))
+    .addStringOption(opt => opt.setName('co-hosts').setDescription('Co-Hosts/Trainers'))
     .toJSON(),
 
   new SlashCommandBuilder()
