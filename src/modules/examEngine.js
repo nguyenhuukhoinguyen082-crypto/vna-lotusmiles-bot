@@ -27,17 +27,27 @@ async function startExam(interaction) {
     return interaction.reply({ content: 'You already have an active exam. Please complete it first.', ephemeral: true });
   }
 
-  // Check Firebase for existing submission
+  // Check Firebase for existing progress and prior graded results
   const existing = await fb.getExamProgress(userId);
-  if (existing && existing.submitted) {
-    return interaction.reply({ content: 'You have already submitted an exam. Please wait for your results.', ephemeral: true });
-  }
-
-  // Check tries
   const result = await fb.getResult(userId);
   const triesUsed = result ? (result.triesUsed || 0) : 0;
-  if (triesUsed >= config.exam.maxTries) {
-    return interaction.reply({ content: 'You have used all your tries. You cannot take the test again.', ephemeral: true });
+
+  if (result) {
+    // Already graded:
+    if (result.passed) {
+      return interaction.reply({ content: 'You have already passed the Phase 1 exam. You cannot retake it.', ephemeral: true });
+    }
+    if (triesUsed >= config.exam.maxTries) {
+      return interaction.reply({ content: 'You have used all your tries. You cannot take the test again.', ephemeral: true });
+    }
+    // Failed but still has tries left → allow a retry. Clear the old
+    // submitted/leftover progress so the submitted flag doesn't block us.
+    if (existing && existing.submitted) {
+      await fb.clearExamProgress(userId);
+    }
+  } else if (existing && existing.submitted) {
+    // No result yet but a submission exists → still awaiting grading.
+    return interaction.reply({ content: 'You have already submitted an exam. Please wait for your results.', ephemeral: true });
   }
 
   // Ask for department selection
