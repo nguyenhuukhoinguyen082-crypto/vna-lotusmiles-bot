@@ -36,6 +36,20 @@ const commands = [
     .setName('request-supervision')
     .setDescription('Request a Phase 3 live flight supervision')
     .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('set-grading-channel')
+    .setDescription('[Admin] Set the channel where exam submissions are posted')
+    .addChannelOption(opt =>
+      opt.setName('channel')
+        .setDescription('The channel to route test submissions to')
+        .setRequired(true))
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('spawn-exam-panel')
+    .setDescription('[Admin] Spawn a persistent "Start Phase 1 Exam" panel in this channel')
+    .toJSON(),
 ];
 
 module.exports = commands;
