@@ -3,29 +3,26 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  PermissionFlagsBits,
 } = require('discord.js');
 const config = require('../config');
 const fb = require('../firebase');
 
-const ADMIN_ROLE_IDS = [
-  config.roles.stage1,
-  config.roles.phase2,
-];
+// Admin is determined solely by the ADMIN_USER_ID env value.
+function isAdmin(userId) {
+  if (!config.adminUserId) return false;
+  return config.adminUserId === userId;
+}
 
-function hasAdminPermission(member) {
-  if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
-  // Instructors hold Phase 2 role; foundation/admin roles typically have Manage Guild
-  if (member.permissions.has(PermissionFlagsBits.ManageGuild)) return true;
-  return false;
+function hasAdminPermission(interaction) {
+  return isAdmin(interaction.user.id);
 }
 
 async function setGradingChannel(interaction) {
   const channel = interaction.options.getChannel('channel');
 
-  if (!hasAdminPermission(interaction.member)) {
+  if (!hasAdminPermission(interaction)) {
     return interaction.reply({
-      content: 'You do not have permission to use this command. Administrator or server manager permission is required.',
+      content: 'You are not authorized to use this command. Only the configured admin can use it.',
       ephemeral: true,
     });
   }
@@ -46,9 +43,9 @@ async function setGradingChannel(interaction) {
 }
 
 async function spawnExamPanel(interaction) {
-  if (!hasAdminPermission(interaction.member)) {
+  if (!hasAdminPermission(interaction)) {
     return interaction.reply({
-      content: 'You do not have permission to use this command. Administrator or server manager permission is required.',
+      content: 'You are not authorized to use this command. Only the configured admin can use it.',
       ephemeral: true,
     });
   }
@@ -86,6 +83,7 @@ async function spawnExamPanel(interaction) {
 }
 
 module.exports = {
+  isAdmin,
   hasAdminPermission,
   setGradingChannel,
   spawnExamPanel,
