@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "deploy": "node src/deploy-commands.js",
+    "reset": "node src/reset-commands.js",
+    "list": "node src/list-commands.js",
     "dev": "node --watch src/index.js"
   },
   "keywords": ["discord", "klm", "academy", "examination", "training"],
