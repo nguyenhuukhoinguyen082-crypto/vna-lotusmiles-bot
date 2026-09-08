@@ -8,8 +8,21 @@ const moderation = require('./modules/moderation');
 const supervision = require('./modules/supervision');
 const admin = require('./modules/admin');
 
-// Initialize Firebase
-fb.initFirebase();
+// Initialize Firebase (lazy — log a clear warning if not configured correctly,
+// but still allow the Discord client to come online)
+try {
+  fb.initFirebase();
+  console.log('Firebase initialized successfully.');
+} catch (e) {
+  console.error('Firebase initialization failed:');
+  console.error(e.message);
+  console.error('Firebase-dependent commands (exams, grading, hosting) will not work until this is fixed.');
+}
+
+if (!config.token) {
+  console.error('Missing DISCORD_TOKEN in .env. The bot cannot log in. Add your bot token and restart.');
+  process.exit(1);
+}
 
 // Create client
 const client = new Client({
