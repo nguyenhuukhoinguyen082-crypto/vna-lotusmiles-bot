@@ -1,0 +1,102 @@
+module.exports = {
+  department: 'Flight Deck',
+  mcq: [
+    {
+      question: 'How many sections does the Flight Deck handbook have, not counting Welcome/Introduction, Training, or Conclusion & Credits?',
+      options: ['8', '9', '10', '11', '12', '13'],
+      correct: [2],
+      points: 2,
+    },
+    {
+      question: 'Should you turn on the engine while being pushed back?',
+      options: [
+        'Yes — start the engines as soon as pushback begins, regardless of connection status',
+        'No — never start the engines during pushback under any circumstance, even after disconnecting',
+        'No — not while still connected to the pushback tug, because of a known PTFS bug',
+        'Yes — because we can',
+        'No — but only because ground crew must explicitly approve it first',
+        'Yes — as long as the pilot wants to',
+      ],
+      correct: [2],
+      points: 2,
+    },
+    {
+      question: 'What is the recommended taxi speed, and what should you check before taxiing?',
+      options: [
+        '5–10 knots; check the taxi chart',
+        '10–15 knots; check the weather provided by the ATC',
+        '10–20 knots; check the taxi chart for your planned route',
+        '15–25 knots; check with ground crew',
+        '20–30 knots; check the taxi chart',
+        '10–20 knots; check with ground crew',
+      ],
+      correct: [2],
+      points: 2,
+    },
+    {
+      question: 'If you find yourself too high during descent, what should you do?',
+      options: [
+        'Pitch down more steeply to catch the glidepath',
+        'Fly a circular descent',
+        'Perform a go-around',
+        'Reduce your speed to idle and let the aircraft sink naturally',
+        'Continue the approach and correct once established on short final',
+        'Back and front left door',
+      ],
+      correct: [1, 2],
+      points: 2,
+    },
+    {
+      question: 'What are PAPI lights used for?',
+      options: [
+        'To show the correct heading for your final approach course',
+        'To indicate your horizontal position relative to the runway centerline',
+        'To indicate how high you currently are, which determines your touchdown point',
+        'To indicate your current airspeed relative to the approach speed',
+        'To show the distance remaining to the threshold',
+        'To communicate directly with the tower during approach',
+      ],
+      correct: [2],
+      points: 2,
+    },
+    {
+      question: 'After touchdown, which of these is correct?',
+      options: [
+        'Apply reverse thrust at about 40% throttle once all wheels are on the ground',
+        'Apply reverse thrust at about 60% throttle immediately on touchdown, before the nose wheel is down',
+        'Switch from reverse thrust to taxi thrust once your speed reaches 60 knots',
+        'Switch from reverse thrust to taxi thrust once your speed reaches 40 knots',
+        'Keep reverse thrust engaged all the way to the gate',
+        'Exit the runway at any convenient speed, then retract the flaps immediately at touchdown',
+      ],
+      correct: [0, 2],
+      points: 2,
+    },
+  ],
+  writtenQuestions: [
+    {
+      id: 7,
+      question: "You've just leveled off at your flight-planned cruising altitude after a smooth climb. Walk through exactly what you do next to properly settle into cruise — including any keys/commands you'd use, and how much altitude inaccuracy is acceptable before you'd need to correct it.",
+      points: 3,
+      guideline: 'Slowly tilt the nose down make sure the plane tilt is nearly 0 (1pts). Press R for the plane fully goes to 0 degree tilt (0.5pts). Press F to fully Cruise (1pts). Maximum 50 feet different from the flight plan filed (0.5pts)',
+    },
+    {
+      id: 8,
+      question: "You and your co-pilot are about to begin operations for today's flight. Walk through what the plane check involves, who's responsible for it, and why we bother doing it even though it has no effect on the game's mechanics.",
+      points: 3,
+      guideline: 'A plane walkaround at gears, engines, under the wing, wingtips and any other crucial plane parts of the plane (1pts). Co-pilot or Pilot but usually the Pilot since they are leading the plane more (1pts). It makes the flight more realistic and also illustrates real-life procedures (1pts)',
+    },
+    {
+      id: 9,
+      question: 'What is a Flight Plan? How should you file the flight plan? What components are included in a flight plan? Give me an example flight plan.',
+      points: 3,
+      guideline: 'Is like a form where pilots file their upcoming flight details for a smoother flight (1.5pts). Callsign, Aircraft, Departure, Arrival, Route, Flight Level and Runway (they must demonstrate an example of a flight plan) (1.5pts)',
+    },
+    {
+      id: 10,
+      question: "You're now halfway through the route in cruise. Walk through what changes at this point — what you'd press, what you'd tell the cabin crew, and what has to happen till we land at the destination?",
+      points: 3,
+      guideline: 'Press F again to uncruise and tilt the plane down a bit to approach the airport and lower throttle when near the island airport (1pts). Slowly descend the plane and control the plane until the aircraft is aligned with the runway for approach, may deploy flaps to reduce the speed (1pts). Use PAPI lights to indicate the approach. Deploy gears at 1000ft and touchdown as smoothly as possible. Try to align with the runway, land in the touchdown zone and perfect speed. (1pts)',
+    },
+  ],
+};
