@@ -1,0 +1,95 @@
+module.exports = {
+  department: 'Ground Crew',
+  mcq: [
+    {
+      question: 'Which of these are mentioned as briefing content that Flight Dispatchers cover? (for Ground Crew only)',
+      options: [
+        'Departure and Arrival Airport',
+        'Classes offered on the flight',
+        "The pilot's flight minutes",
+        "The aircraft's ground crew vehicles types",
+        'The exact number of passengers pre-booked in each class',
+        'Ground Crew limitations',
+      ],
+      correct: [0, 3],
+      points: 2,
+    },
+    {
+      question: 'How to setup airports on departure',
+      options: [
+        'Divide the zones and setup by FlightRadar24 Data',
+        'Use the airport location in real-life and set up by FlightRadar24 Data',
+        'Set up all white',
+        'No setup required',
+        'Use the PTFS Airport Island location in real-life and set up like that',
+        'Choose random airlines to set up',
+      ],
+      correct: [1],
+      points: 2,
+    },
+    {
+      question: 'How many vehicles is needed for a B787 at the gate?',
+      options: ['3', '4', '5', '6', '7', '8'],
+      correct: [3],
+      points: 2,
+    },
+    {
+      question: 'Where should the catering truck located on the B737',
+      options: [
+        'Front right door',
+        'Front left door',
+        'Back right door',
+        'Back left door',
+        'Back and front right door',
+        'Back and front left door',
+      ],
+      correct: [4],
+      points: 2,
+    },
+    {
+      question: 'What is a stair truck?',
+      options: [
+        'A vehicle used for transporting luggage to the plane',
+        'A vehicle used to supply fuel to the plane',
+        'A vehicle used for providing services like food and drinks',
+        'A vehicle used to help passengers board the plane if not using the gate, or for staff to get on the plane',
+        'A vehicle used for moving passengers to board the plane if not using the gate',
+        'A vehicle used for pushing back the plane',
+      ],
+      correct: [3],
+      points: 2,
+    },
+    {
+      question: 'How many cones is needed for a B777?',
+      options: ['3', '4', '5', '6', '7', '8'],
+      correct: [3],
+      points: 2,
+    },
+  ],
+  writtenQuestions: [
+    {
+      id: 7,
+      question: 'Give me a full demonstration of cone placement. (Describe the image yourself.)',
+      points: 3,
+      guideline: 'Just take image as reference and see how they describe',
+    },
+    {
+      id: 8,
+      question: 'An Airbus A350 is parking at Perth International at gate 14 (have jetway). How would you set up the Ground Crew vehicles?',
+      points: 3,
+      guideline: 'Catering Trucks at front right door and back right door, fuel truck at the next to right wing, not under. 1 Stair Truck at back left door. 2 baggage trucks at back right part of the plane (and front right part of the plane). 1 pushback tug at front.',
+    },
+    {
+      id: 9,
+      question: "A flight is arriving with Amsterdam Schiphol as its destination. Walk through how and when you'd set up the airport for its arrival.",
+      points: 3,
+      guideline: 'Set up airport majority as KLM and other European Airlines, leave a gate for the flight arrival (1pts). Send some basic ground crew vehicles ready for service right after arrival (1pts). Once the aircraft landed, send a follow me truck (optional) and guide them until they are approaching the gate and start marshalling (1pts)',
+    },
+    {
+      id: 10,
+      question: 'What are the additional Ground Crew vehicles needed to be added when the flight is not using the jetway for departure? Describe it and explain why do we need it?',
+      points: 3,
+      guideline: 'Stair Truck - A vehicle for help people board the plane easier and Terminal Bus to transport all the passengers from the stand to the plane (1.5pts). The Stair Truck will help passengers board the plane from ground while Terminal bus helps moving passengers to the pit easier and faster (1.5pts)',
+    },
+  ],
+};
