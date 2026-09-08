@@ -32,15 +32,29 @@ client.once(Events.ClientReady, async (c) => {
     const commands = require('./commands');
     const rest = new REST({ version: '10' }).setToken(config.token);
 
-    if (config.guildId) {
+    // Determine the app ID from the logged-in client
+    const appId = c.user.id;
+
+    // Verify the bot is actually in the configured guild before trying guild registration
+    const configuredGuild = config.guildId ? c.guilds.cache.get(config.guildId) : null;
+
+    let registered = false;
+    if (config.guildId && configuredGuild) {
+      try {
+        await rest.put(
+          Routes.applicationGuildCommands(appId, config.guildId),
+          { body: commands }
+        );
+        console.log(`Registered ${commands.length} slash commands to guild ${config.guildId}`);
+        registered = true;
+      } catch (gErr) {
+        console.warn(`Guild command registration to ${config.guildId} failed (${gErr.code || gErr.message}). Falling back to global registration...`);
+      }
+    }
+
+    if (!registered) {
       await rest.put(
-        Routes.applicationGuildCommands(c.user.id, config.guildId),
-        { body: commands }
-      );
-      console.log(`Registered ${commands.length} slash commands to guild`);
-    } else {
-      await rest.put(
-        Routes.applicationCommands(c.user.id),
+        Routes.applicationCommands(appId),
         { body: commands }
       );
       console.log(`Registered ${commands.length} commands globally`);
