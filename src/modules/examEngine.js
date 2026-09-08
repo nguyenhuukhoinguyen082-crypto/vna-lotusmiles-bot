@@ -10,10 +10,20 @@ const {
 const config = require('../config');
 const fb = require('../firebase');
 const { getExam } = require('../exams');
-const { generateId } = require('../utils/helpers');
+const { generateId, shuffle } = require('../utils/helpers');
 
 // Active exam sessions keyed by userId
 const activeSessions = new Map();
+
+// Build a modal text-input label, kept safely under Discord's 45-char limit.
+function writtenLabel(questionId, question) {
+  const prefix = `Q${questionId}: `;
+  if (prefix.length + question.length <= 45) {
+    return prefix + question;
+  }
+  const room = 45 - prefix.length - 1; // reserve 1 char for the ellipsis
+  return prefix + question.slice(0, room) + '…';
+}
 
 // Entry point when user clicks the spawned "Start Phase 1 Exam" button
 async function beginExamFromButton(interaction) {
@@ -99,6 +109,7 @@ async function handleDepartmentSelect(interaction) {
     department,
     currentQuestion: 0,
     mcqAnswers: [],
+    mcqShuffles: [], // per-question order mapping (display index -> original index)
     writtenAnswers: [],
     phase: 'mcq',
     startedAt: Date.now(),
@@ -137,18 +148,32 @@ async function sendMCQuestion(channel, session, exam) {
   }
 
   const q = exam.mcq[qIndex];
-  const options = q.options.map((opt, i) => ({
-    label: opt.length > 100 ? opt.slice(0, 97) + '...' : opt,
-    value: String(i),
-    description: `Option ${i + 1}`,
+
+  // Shuffle the answer order for this question (Fisher-Yates).
+  // We store the mapping (display position -> original index) so grading maps selections back.
+  let shuffleOrder = session.mcqShuffles[qIndex];
+  if (!shuffleOrder) {
+    shuffleOrder = shuffle(q.options.map((_, i) => i));
+    session.mcqShuffles[qIndex] = shuffleOrder;
+  }
+
+  // Build options in the shuffled display order
+  const options = shuffleOrder.map((origIdx, displayIdx) => ({
+    label: q.options[origIdx].length > 100 ? q.options[origIdx].slice(0, 97) + '...' : q.options[origIdx],
+    value: String(displayIdx), // value is the DISPLAY position
+    description: `Option ${displayIdx + 1}`,
   }));
+
+  // All MCQs can have multiple answers selected - the candidate should
+  // figure out which ones are correct (1 or more).
+  const maxSelect = q.options.length;
 
   const selectRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId('exam_mc_answer')
       .setPlaceholder(`Question ${qIndex + 1}/6 - Select your answer(s)...`)
       .setMinValues(1)
-      .setMaxValues(q.correct.length > 1 ? q.correct.length : 1)
+      .setMaxValues(maxSelect)
       .addOptions(options)
   );
 
@@ -166,7 +191,10 @@ async function handleMCAnswer(interaction) {
   }
 
   const exam = getExam(session.department);
-  const selected = interaction.values.map(Number);
+  // Selections come back as DISPLAY positions. Map them back to original indices
+  // using the stored shuffle order for the current question.
+  const shuffleOrder = session.mcqShuffles[session.currentQuestion] || [];
+  const selected = interaction.values.map(Number).map(displayIdx => shuffleOrder[displayIdx]);
   const q = exam.mcq[session.currentQuestion];
 
   // Check if answer is correct
@@ -210,7 +238,7 @@ async function sendWrittenQuestion(channel, session, exam) {
 
   const answerInput = new TextInputBuilder()
     .setCustomId('written_answer')
-    .setLabel(`Q${q.id}: ${q.question.slice(0, 100)}`)
+    .setLabel(writtenLabel(q.id, q.question))
     .setStyle(TextInputStyle.Paragraph)
     .setPlaceholder('Type your detailed answer here...')
     .setRequired(true)
@@ -261,7 +289,7 @@ async function handleWrittenTrigger(interaction) {
 
   const answerInput = new TextInputBuilder()
     .setCustomId('written_answer')
-    .setLabel(`Q${q.id}: ${q.question.slice(0, 80)}`)
+    .setLabel(writtenLabel(q.id, q.question))
     .setStyle(TextInputStyle.Paragraph)
     .setPlaceholder('Type your detailed answer here...')
     .setRequired(true)
