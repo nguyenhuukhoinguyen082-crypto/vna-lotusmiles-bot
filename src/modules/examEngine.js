@@ -15,6 +15,12 @@ const { generateId } = require('../utils/helpers');
 // Active exam sessions keyed by userId
 const activeSessions = new Map();
 
+// Entry point when user clicks the spawned "Start Phase 1 Exam" button
+async function beginExamFromButton(interaction) {
+  return startExam(interaction);
+}
+
+// Entry point for both /take-test and the spawned panel button
 async function startExam(interaction) {
   const userId = interaction.user.id;
   const guild = interaction.guild;
@@ -318,8 +324,15 @@ async function finishExam(channel, session, exam) {
   await fb.updateExamProgress(session.userId, { submitted: true });
   await fb.submitExam(session.examId, examData);
 
-  // Post to instructor queue
-  const queueChannel = await channel.client.channels.fetch(config.channels.instructorQueue).catch(() => null);
+  // Post to instructor queue - use dynamically configured channel from Firebase, fallback to env
+  let queueChannelId = await fb.getGradingChannelId();
+  if (!queueChannelId) queueChannelId = config.channels.instructorQueue;
+
+  let queueChannel = null;
+  if (queueChannelId) {
+    queueChannel = await channel.client.channels.fetch(queueChannelId).catch(() => null);
+  }
+
   if (queueChannel) {
     const trainee = await channel.client.users.fetch(session.userId).catch(() => null);
     const traineeTag = trainee ? trainee.tag : session.userId;
@@ -360,6 +373,7 @@ async function cancelExam(userId) {
 
 module.exports = {
   startExam,
+  beginExamFromButton,
   handleDepartmentSelect,
   handleMCAnswer,
   handleWrittenTrigger,
