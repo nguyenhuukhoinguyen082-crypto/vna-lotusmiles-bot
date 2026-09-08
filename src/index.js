@@ -6,6 +6,7 @@ const gradingQueue = require('./modules/gradingQueue');
 const phase2Eval = require('./modules/phase2Eval');
 const moderation = require('./modules/moderation');
 const supervision = require('./modules/supervision');
+const admin = require('./modules/admin');
 
 // Initialize Firebase
 fb.initFirebase();
@@ -77,6 +78,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         case 'request-supervision':
           return await supervision.requestSupervision(interaction);
+
+        case 'set-grading-channel':
+          return await admin.setGradingChannel(interaction);
+
+        case 'spawn-exam-panel':
+          return await admin.spawnExamPanel(interaction);
       }
     }
 
@@ -99,6 +106,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // === BUTTONS ===
     if (interaction.isButton()) {
+      // Spawned exam panel button
+      if (interaction.customId === 'spawned_start_exam') {
+        return await examEngine.beginExamFromButton(interaction);
+      }
+
       // Written exam trigger
       if (interaction.customId === 'exam_trigger_written_modal') {
         return await examEngine.handleWrittenTrigger(interaction);
