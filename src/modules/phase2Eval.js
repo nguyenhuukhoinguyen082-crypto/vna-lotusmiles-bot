@@ -102,12 +102,6 @@ async function startPhase2Grading(interaction) {
 async function handlePhase2DeptSelect(interaction) {
   const dept = interaction.values[0];
 
-  // Ask for trainee
-  await interaction.update({
-    content: `**${getDeptName(dept)}** selected.\n\nNow, please enter the trainee's user ID or mention them in the next step.`,
-    components: [],
-  });
-
   const modal = new ModalBuilder()
     .setCustomId(`phase2_trainee_${dept}`)
     .setTitle('Phase 2 - Trainee Info');
@@ -336,11 +330,6 @@ async function handlePhase2GradeModal(interaction, evalId, traineeId, dept) {
     content: `Phase 2 evaluation graded!\n**Trainee:** <@${traineeId}>\n**Score:** ${total}/${maxPoints}\n**Result:** ${passed ? '✅ PASSED' : '❌ FAILED'}`,
     ephemeral: true,
   });
-}
-
-function getDeptName(key) {
-  const map = { flightDeck: 'Flight Deck', cabinCrew: 'Cabin Crew', groundCrew: 'Ground Crew' };
-  return map[key] || key;
 }
 
 module.exports = {
