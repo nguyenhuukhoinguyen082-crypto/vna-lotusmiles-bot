@@ -6,7 +6,31 @@ let db;
 function initFirebase() {
   if (db) return db;
 
-  const credentials = JSON.parse(config.firebase.credentialsJson);
+  if (!config.firebase.credentialsJson) {
+    throw new Error(
+      'Missing FIREBASE_CREDENTIALS_JSON in .env. ' +
+      'Add your Firebase service-account JSON string to FIREBASE_CREDENTIALS_JSON and the ' +
+      'database URL to FIREBASE_DATABASE_URL, then restart the bot.'
+    );
+  }
+
+  if (!config.firebase.databaseUrl) {
+    throw new Error(
+      'Missing FIREBASE_DATABASE_URL in .env. ' +
+      'Set it to your Firebase Realtime Database URL, e.g. https://your-project.firebaseio.com'
+    );
+  }
+
+  let credentials;
+  try {
+    credentials = JSON.parse(config.firebase.credentialsJson);
+  } catch (e) {
+    throw new Error(
+      'FIREBASE_CREDENTIALS_JSON is not valid JSON. ' +
+      'It must be a single-line JSON string of your Firebase service account. Original error: ' + e.message
+    );
+  }
+
   admin.initializeApp({
     credential: admin.credential.cert(credentials),
     databaseURL: config.firebase.databaseUrl,
