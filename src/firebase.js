@@ -105,6 +105,30 @@ async function getSupervisionRequest(userId) {
   return snap.val();
 }
 
+// Dynamic bot configuration (persists across restarts)
+async function getBotConfig(key) {
+  const snap = await getDb().ref(`botConfig/${key}`).once('value');
+  return snap.val();
+}
+
+async function setBotConfig(key, value) {
+  await getDb().ref(`botConfig/${key}`).set(value);
+}
+
+async function getAllBotConfig() {
+  const snap = await getDb().ref('botConfig').once('value');
+  return snap.val() || {};
+}
+
+// Grading channel helper
+async function getGradingChannelId() {
+  return getBotConfig('gradingChannelId');
+}
+
+async function setGradingChannelId(channelId) {
+  return setBotConfig('gradingChannelId', channelId);
+}
+
 module.exports = {
   initFirebase,
   getDb,
@@ -126,4 +150,9 @@ module.exports = {
   removeHostingSession,
   saveSupervisionRequest,
   getSupervisionRequest,
+  getBotConfig,
+  setBotConfig,
+  getAllBotConfig,
+  getGradingChannelId,
+  setGradingChannelId,
 };
