@@ -12,6 +12,31 @@ const { generateId, shuffle } = require('../utils/helpers');
 // Active exam sessions keyed by userId
 const activeSessions = new Map();
 
+// Rebuild an in-memory session from the persisted Firebase progress.
+// This lets applicants resume exams that were interrupted by a bot restart.
+async function recoverSession(userId) {
+  if (activeSessions.has(userId)) return activeSessions.get(userId);
+
+  const progress = await fb.getExamProgress(userId).catch(() => null);
+  if (!progress || progress.submitted || !progress.phase || !progress.examId) return null;
+
+  const session = {
+    examId: progress.examId,
+    userId,
+    department: progress.department,
+    currentQuestion: progress.currentQuestion || 0,
+    mcqAnswers: progress.mcqAnswers || [],
+    mcqShuffles: progress.mcqShuffles || [],
+    writtenAnswers: progress.writtenAnswers || [],
+    phase: progress.phase || 'mcq',
+    startedAt: progress.startedAt || Date.now(),
+  };
+  if (session.phase === 'written') session.awaitingAnswer = true;
+
+  activeSessions.set(userId, session);
+  return session;
+}
+
 // Entry point when user clicks the spawned "Start Phase 1 Exam" button
 async function beginExamFromButton(interaction) {
   return startExam(interaction);
@@ -119,7 +144,10 @@ async function handleDepartmentSelect(interaction) {
     department,
     startedAt: Date.now(),
     submitted: false,
+    phase: 'mcq',
+    currentQuestion: 0,
     mcqAnswers: [],
+    mcqShuffles: [],
     writtenAnswers: [],
   });
 
@@ -182,7 +210,8 @@ async function sendMCQuestion(channel, session, exam) {
 
 async function handleMCAnswer(interaction) {
   const userId = interaction.user.id;
-  const session = activeSessions.get(userId);
+  let session = activeSessions.get(userId);
+  if (!session) session = await recoverSession(userId);
   if (!session) {
     return interaction.reply({ content: 'No active exam session found.', ephemeral: true });
   }
@@ -210,6 +239,7 @@ async function handleMCAnswer(interaction) {
   session.currentQuestion++;
   await fb.updateExamProgress(session.userId, {
     mcqAnswers: session.mcqAnswers,
+    mcqShuffles: session.mcqShuffles,
     currentQuestion: session.currentQuestion,
   });
 
@@ -243,7 +273,8 @@ async function handleDMMessage(message) {
   // Only process direct messages
   if (!message.guildId) {
     const userId = message.author.id;
-    const session = activeSessions.get(userId);
+    let session = activeSessions.get(userId);
+    if (!session) session = await recoverSession(userId);
     if (!session || session.phase !== 'written') return false;
     if (!session.awaitingAnswer) return false;
 
@@ -308,12 +339,16 @@ async function finishExam(channel, session, exam) {
   await fb.submitExam(session.examId, examData);
 
   // Post to instructor queue - use dynamically configured channel from Firebase, fallback to env
-  let queueChannelId = await fb.getGradingChannelId();
+  let queueChannelId = await fb.getGradingChannelId().catch(() => null);
   if (!queueChannelId) queueChannelId = config.channels.instructorQueue;
 
   let queueChannel = null;
   if (queueChannelId) {
     queueChannel = await channel.client.channels.fetch(queueChannelId).catch(() => null);
+  }
+
+  if (!queueChannel) {
+    console.error(`[examEngine] Submission ${session.examId} (user ${session.userId}, ${session.department}) could NOT be posted: no grading channel resolved. Firebase gradingChannelId=${(await fb.getGradingChannelId().catch(() => null)) || '(none)'}, instructorQueue env=${config.channels.instructorQueue || '(none)'}`);
   }
 
   if (queueChannel) {
