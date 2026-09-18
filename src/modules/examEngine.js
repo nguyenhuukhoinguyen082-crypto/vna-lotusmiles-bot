@@ -57,7 +57,12 @@ async function startExam(interaction) {
   const result = await fb.getResult(userId);
   const triesUsed = result ? (result.triesUsed || 0) : 0;
 
-  if (result) {
+  // The configured admin can retake the exam unlimited times (for testing/review).
+  const isAdminTester = config.adminUserId && userId === config.adminUserId;
+
+  if (isAdminTester) {
+    if (existing) await fb.clearExamProgress(userId);
+  } else if (result) {
     // Already graded:
     if (result.passed) {
       return interaction.reply({ content: 'You have already passed the Phase 1 exam. You cannot retake it.', ephemeral: true });
@@ -355,10 +360,6 @@ async function finishExam(channel, session, exam) {
     const trainee = await channel.client.users.fetch(session.userId).catch(() => null);
     const traineeTag = trainee ? trainee.tag : session.userId;
 
-    const writtenSection = session.writtenAnswers.map((w, i) => {
-      return `\n**Q${w.questionId}:** ${w.question}\n> ${w.answer}`;
-    }).join('\n');
-
     const pendingRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`grade_exam_${session.examId}`)
@@ -370,10 +371,18 @@ async function finishExam(channel, session, exam) {
         .setStyle(ButtonStyle.Danger)
     );
 
+    // Header message carries the buttons. Written Q+A are sent as separate
+    // messages (1 question = 1 message) to avoid hitting the 2000-char limit.
     await queueChannel.send({
-      content: `## New Exam Submission\n**Trainee:** <@${session.userId}> (${traineeTag})\n**Department:** ${session.department}\n**MCQ Score:** ${totalMCQ}/12\n**Exam ID:** \`${session.examId}\`\n\n### Written Answers:${writtenSection}`,
+      content: `## New Exam Submission\n**Trainee:** <@${session.userId}> (${traineeTag})\n**Department:** ${session.department}\n**MCQ Score:** ${totalMCQ}/12\n**Exam ID:** \`${session.examId}\`\n\n### Written Answers:`,
       components: [pendingRow],
     });
+
+    for (const w of session.writtenAnswers) {
+      await queueChannel.send({
+        content: `**Q${w.questionId}:** ${w.question}\n> ${w.answer}`,
+      });
+    }
   }
 
   // Clean up
