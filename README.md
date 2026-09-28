@@ -1,7 +1,7 @@
 # TASK SPECIFICATION: KLM ACADEMY DISCORD UTILITY & EXAMINATION BOT
 
 ## TARGET ENVIRONMENT & REPOSITORY INSTRUCTIONS
-- **Target Repository**: Directly edit and commit all code into the GitHub repository at `https://github.com/nguyenhuukhoinguyen082-crypto/vna-lotusmiles-bot/tree/main` - Remove all old files. Use authorization key `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`.
+- **Target Repository**: Directly edit and commit all code into the GitHub repository at `https://github.com/nguyenhuukhoinguyen082-crypto/vna-lotusmiles-bot/tree/main` - Remove all old files. Use authorization key `sECRET`.
 - **Hosting Target**: Optimized for `bot-hosting.net` (Node.js/discord.js or Python/discord.py).
 - **Database Engine**: Firebase Realtime Database (via `firebase-admin`) to guarantee persistent storage for exam progress, hostings, and scores across container restarts on free host nodes.
 - **Environment File (`.env`)**:
